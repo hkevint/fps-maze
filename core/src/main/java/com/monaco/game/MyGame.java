@@ -13,24 +13,29 @@ import com.badlogic.gdx.utils.ScreenUtils;
 public class MyGame extends ApplicationAdapter {
     private SpriteBatch batch;
     private Texture image;
-    private Player player;
+    private Player player1;
+    private Player player2;
 
     @Override
     public void create() {
         batch = new SpriteBatch();
         image = new Texture("libgdx.png");
-        player = new Player(100, 100);
+        player1 = new Player(100, 100, 1);
+        player2 = new Player(50, 100, 2);
+
 
         Gdx.input.setInputProcessor(new InputAdapter(){
             @Override
             public boolean keyDown(int keycode){
-                player.handleKeyPress(keycode);
+                player1.handleKeyPress(keycode);
+                player2.handleKeyPress(keycode);
                 return true;
             }
 
             @Override
             public boolean keyUp(int keycode) {
-                player.handleKeyRelease(keycode);
+                player1.handleKeyRelease(keycode);
+                player2.handleKeyRelease(keycode);
                 return true;
             }
         });
@@ -43,10 +48,12 @@ public class MyGame extends ApplicationAdapter {
 
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        player.update(deltaTime);
+        player1.update(deltaTime);
+        player2.update(deltaTime);
 
         batch.begin();
-        player.render(batch);
+        player1.render(batch);
+        player2.render(batch);
         batch.end();
     }
 
@@ -54,6 +61,7 @@ public class MyGame extends ApplicationAdapter {
     public void dispose() {
         batch.dispose();
         image.dispose();
-        player.dispose();
+        player1.dispose();
+        player2.dispose();
     }
 }
