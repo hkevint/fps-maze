@@ -76,9 +76,14 @@ public class MyGame extends ApplicationAdapter {
             // Render the start menu
             renderMenu();
         } else {
-            // Render the main game
+            // Update players' positions
             player1.update(deltaTime);
             player2.update(deltaTime);
+
+            // Check for collisions between players
+            if (checkCollision(player1, player2)) {
+                handleCollision(player1, player2); // Handle the collision
+            }
 
             batch.begin();
             player1.render(batch);
@@ -98,6 +103,19 @@ public class MyGame extends ApplicationAdapter {
         font.draw(batch, text, x, y);
 
         batch.end();
+    }
+
+    // Collision detection between two players
+    private boolean checkCollision(Player player1, Player player2) {
+        // Simple collision check by comparing bounding boxes
+        return player1.getBounds().overlaps(player2.getBounds());
+    }
+
+    // Handle collision between two players (e.g., stop movement, bounce back)
+    private void handleCollision(Player player1, Player player2) {
+        // For now, just stop both players from moving when they collide
+        player1.stopMovement();
+        player2.stopMovement();
     }
 
     @Override
