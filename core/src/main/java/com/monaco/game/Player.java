@@ -7,12 +7,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class Player {
     private int x, y;
-    private int speed = 5;
-    private boolean up, down, left, right;
-    private long lastPressUp, lastPressDown, lastPressLeft, lastPressRight;
-    private static final int NORMAL_SPEED = 5;
-    private static final int SPRINT_SPEED = 10;
-    private static final long DOUBLE_PRESS_TIME = 300; // 300ms for double press detection
+    private boolean up, down, left, right, sprinting, sprintAvailable = true;
+    private static final int NORMAL_SPEED = 3;
+    private static final int SPRINT_SPEED = 5;
+    private static final float SPRINT_DURATION = 3.0f;
+    private static final float RECHARGE_TIME = 3.0f;
+
+    private float sprintTime = 0;
+    private float rechargeTime = 0;
 
     private Texture texture;
 
@@ -23,21 +25,7 @@ public class Player {
     }
 
     public void move() {
-        int currentSpeed = speed;
-
-        // Sprinting Logic
-        if (up && System.currentTimeMillis() - lastPressUp < DOUBLE_PRESS_TIME) {
-            currentSpeed = SPRINT_SPEED;
-        }
-        if (down && System.currentTimeMillis() - lastPressDown < DOUBLE_PRESS_TIME) {
-            currentSpeed = SPRINT_SPEED;
-        }
-        if (left && System.currentTimeMillis() - lastPressLeft < DOUBLE_PRESS_TIME) {
-            currentSpeed = SPRINT_SPEED;
-        }
-        if (right && System.currentTimeMillis() - lastPressRight < DOUBLE_PRESS_TIME) {
-            currentSpeed = SPRINT_SPEED;
-        }
+        int currentSpeed = sprinting ? SPRINT_SPEED : NORMAL_SPEED;
 
         // Apply movement
         if (up) y += currentSpeed;
@@ -46,23 +34,33 @@ public class Player {
         if (right) x += currentSpeed;
     }
 
+    public void update(float deltaTime) {
+        if (sprinting) {
+            sprintTime += deltaTime;
+            if (sprintTime >= SPRINT_DURATION) {
+                sprinting = false;
+                sprintAvailable = false;
+                sprintTime = 0;
+            }
+        }
+
+        else if (!sprintAvailable) {
+            rechargeTime += deltaTime;
+            if (rechargeTime >= RECHARGE_TIME) {
+                sprintAvailable = true;
+                rechargeTime = 0;
+            }
+        }
+
+        move();
+    }
+
     public void handleKeyPress(int keycode) {
-        if (keycode == Input.Keys.W) {
-            up = true;
-            lastPressUp = System.currentTimeMillis();
-        }
-        if (keycode == Input.Keys.S) {
-            down = true;
-            lastPressDown = System.currentTimeMillis();
-        }
-        if (keycode == Input.Keys.A) {
-            left = true;
-            lastPressLeft = System.currentTimeMillis();
-        }
-        if (keycode == Input.Keys.D) {
-            right = true;
-            lastPressRight = System.currentTimeMillis();
-        }
+        if (keycode == Input.Keys.W) up = true;
+        if (keycode == Input.Keys.S) down = true;
+        if (keycode == Input.Keys.A) left = true;
+        if (keycode == Input.Keys.D) right = true;
+        if (keycode == Input.Keys.U && sprintAvailable) sprinting = true;
     }
 
     public void handleKeyRelease(int keycode) {
@@ -70,6 +68,7 @@ public class Player {
         if (keycode == Input.Keys.S) down = false;
         if (keycode == Input.Keys.A) left = false;
         if (keycode == Input.Keys.D) right = false;
+        if (keycode == Input.Keys.U) sprinting = false;
     }
 
     public void render(SpriteBatch batch) {

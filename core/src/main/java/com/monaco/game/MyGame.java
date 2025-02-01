@@ -39,11 +39,14 @@ public class MyGame extends ApplicationAdapter {
 
     @Override
     public void render() {
+        float deltaTime = Gdx.graphics.getDeltaTime();
+
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        player.move(); // Updates movement
+        player.update(deltaTime);
+
         batch.begin();
-        player.render(batch); // Draws the player
+        player.render(batch);
         batch.end();
     }
 
