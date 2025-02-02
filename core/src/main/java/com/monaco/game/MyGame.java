@@ -23,6 +23,10 @@ public class MyGame extends ApplicationAdapter {
     private int selectedOption; // Tracks the selected option in the pause menu (0: RESUME, 1: EXIT)
     private Viewport viewport; // Handles screen resizing
 
+    private Maze maze;
+    private MazeRenderer mazeRenderer;
+    private int tileSize = 32;
+
     @Override
     public void create() {
         batch = new SpriteBatch();
@@ -34,8 +38,12 @@ public class MyGame extends ApplicationAdapter {
         isPaused = false; // Game is not paused initially
         selectedOption = 0; // Default to RESUME option
 
+
         // Create a ScreenViewport to handle screen resizing
         viewport = new ScreenViewport();
+
+        maze = new Maze(21, 21);
+        mazeRenderer = new MazeRenderer(maze, tileSize);
 
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
@@ -105,6 +113,7 @@ public class MyGame extends ApplicationAdapter {
             player2.update(deltaTime);
 
             batch.begin();
+            mazeRenderer.render(batch);
             player1.render(batch);
             player2.render(batch);
             batch.end();
@@ -167,6 +176,7 @@ public class MyGame extends ApplicationAdapter {
     public void dispose() {
         batch.dispose();
         image.dispose();
+        mazeRenderer.dispose();
         player1.dispose();
         player2.dispose();
         font.dispose(); // Dispose of the font
