@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import java.util.ArrayList;
+import com.badlogic.gdx.math.Rectangle;
 
 public class Player {
     private int x, y;
@@ -20,6 +21,10 @@ public class Player {
 
     private Texture texture;
     private int id;
+    private Rectangle bounds;  // Used for collision detection
+
+    private static final int WIDTH = 24;
+    private static final int HEIGHT = 24;
 
     // For ammo management:
     private ArrayList<Bullet> ammo;
@@ -38,6 +43,8 @@ public class Player {
         ammo = new ArrayList<Bullet>();
         activeBullets = new ArrayList<Bullet>();
         reload(); // Fill magazine at start
+        this.bounds = new Rectangle(x, y, WIDTH, HEIGHT);
+
     }
 
     // Reload: fill the ammo list with new Bullet objects.
@@ -64,13 +71,17 @@ public class Player {
             lastDirY = dy;
         }
 
-        // Apply movement
-        x += dx * currentSpeed;
-        y += dy * currentSpeed;
+        // Apply movement and prevent the player from moving off-screen
+        if (up && y + HEIGHT < Gdx.graphics.getHeight()) y += currentSpeed;
+        if (down && y > 0) y -= currentSpeed;
+        if (left && x > 0) x -= currentSpeed;
+        if (right && x + WIDTH < Gdx.graphics.getWidth()) x += currentSpeed;
+
+        // Update bounds after movement for collision checks
+        bounds.setPosition(x, y);
     }
 
     public void update(float deltaTime) {
-        // Sprint logic
         if (sprinting) {
             sprintTime += deltaTime;
             if (sprintTime >= SPRINT_DURATION) {
@@ -78,7 +89,9 @@ public class Player {
                 sprintAvailable = false;
                 sprintTime = 0;
             }
-        } else if (!sprintAvailable) {
+        }
+
+        else if (!sprintAvailable) {
             rechargeTime += deltaTime;
             if (rechargeTime >= RECHARGE_TIME) {
                 sprintAvailable = true;
@@ -116,7 +129,9 @@ public class Player {
             if (keycode == Input.Keys.LEFT)  left = true;
             if (keycode == Input.Keys.RIGHT) right = true;
             if (keycode == Input.Keys.I && sprintAvailable) sprinting = true;
-        } else if (id == 2) {
+        }
+
+        else if (id == 2){
             if (keycode == Input.Keys.W) up = true;
             if (keycode == Input.Keys.S) down = true;
             if (keycode == Input.Keys.A) left = true;
@@ -132,7 +147,9 @@ public class Player {
             if (keycode == Input.Keys.LEFT)  left = false;
             if (keycode == Input.Keys.RIGHT) right = false;
             if (keycode == Input.Keys.I) sprinting = false;
-        } else if (id == 2) {
+        }
+
+        else if (id == 2){
             if (keycode == Input.Keys.W) up = false;
             if (keycode == Input.Keys.S) down = false;
             if (keycode == Input.Keys.A) left = false;
@@ -187,5 +204,33 @@ public class Player {
         for (Bullet b : ammo) {
             b.dispose();
         }
+    }
+
+    // Getter for player bounds (used for collision checks)
+    public Rectangle getBounds() {
+        return bounds;
+    }
+
+    // Collision with another player
+    public boolean checkCollision(Player otherPlayer) {
+        return this.bounds.overlaps(otherPlayer.getBounds());
+    }
+
+    // Collision handling - if there's a collision, stop movement
+    public void handleCollision(Player otherPlayer) {
+        if (this.checkCollision(otherPlayer)) {
+            // If the players collide, stop their movement by unsetting directions
+            if (this.id == 1) {
+                // Stop player 1's movement
+                up = down = left = right = false;
+            } else if (this.id == 2) {
+                // Stop player 2's movement
+                up = down = left = right = false;
+            }
+        }
+    }
+
+    public void stopMovement() {
+        up = down = left = right = false; // Stop all movement
     }
 }
