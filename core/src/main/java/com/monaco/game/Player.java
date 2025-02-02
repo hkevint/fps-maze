@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import java.util.ArrayList;
 
 public class Player {
     private int x, y;
@@ -12,6 +13,7 @@ public class Player {
     private static final int SPRINT_SPEED = 5;
     private static final float SPRINT_DURATION = 3.0f;
     private static final float RECHARGE_TIME = 3.0f;
+    private static final int MAGAZINE_CAPACITY = 10; // Maximum bullets per magazine
 
     private float sprintTime = 0;
     private float rechargeTime = 0;
@@ -19,24 +21,56 @@ public class Player {
     private Texture texture;
     private int id;
 
+    // For ammo management:
+    private ArrayList<Bullet> ammo;
+    private ArrayList<Bullet> activeBullets;
+
+    // Fields to store the last movement direction.
+    // We'll use a default of (1,0) so the player initially faces right.
+    private float lastDirX = 1;
+    private float lastDirY = 0;
+
     public Player(int startX, int startY, int id) {
         this.x = startX;
         this.y = startY;
         this.id = id;
         this.texture = new Texture("player.jpg");
+        ammo = new ArrayList<Bullet>();
+        activeBullets = new ArrayList<Bullet>();
+        reload(); // Fill magazine at start
     }
 
+    // Reload: fill the ammo list with new Bullet objects.
+    public void reload() {
+        ammo.clear();
+        for (int i = 0; i < MAGAZINE_CAPACITY; i++) {
+            ammo.add(new Bullet(500, 1));
+        }
+        System.out.println("Player " + id + " reloaded. Ammo count: " + ammo.size());
+    }
+
+    // Modified move() method that also updates the last movement direction.
     public void move() {
         int currentSpeed = sprinting ? SPRINT_SPEED : NORMAL_SPEED;
+        int dx = 0, dy = 0;
+        if (up)    dy += 1;
+        if (down)  dy -= 1;
+        if (left)  dx -= 1;
+        if (right) dx += 1;
+
+        // Update the last direction if there is any movement.
+        if (dx != 0 || dy != 0) {
+            lastDirX = dx;
+            lastDirY = dy;
+        }
 
         // Apply movement
-        if (up) y += currentSpeed;
-        if (down) y -= currentSpeed;
-        if (left) x -= currentSpeed;
-        if (right) x += currentSpeed;
+        x += dx * currentSpeed;
+        y += dy * currentSpeed;
     }
 
     public void update(float deltaTime) {
+        // Sprint logic
         if (sprinting) {
             sprintTime += deltaTime;
             if (sprintTime >= SPRINT_DURATION) {
@@ -44,9 +78,7 @@ public class Player {
                 sprintAvailable = false;
                 sprintTime = 0;
             }
-        }
-
-        else if (!sprintAvailable) {
+        } else if (!sprintAvailable) {
             rechargeTime += deltaTime;
             if (rechargeTime >= RECHARGE_TIME) {
                 sprintAvailable = true;
@@ -54,19 +86,37 @@ public class Player {
             }
         }
 
+        // Shooting: if the shoot key is pressed and there is ammo.
+        if (shouldShoot() && !ammo.isEmpty()){
+            shoot();
+        }
+
+        // Reload if ammo is empty and the reload key (R) is pressed.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && ammo.isEmpty()){
+            reload();
+        }
+
+        // Update active bullets
+        for (int i = 0; i < activeBullets.size(); i++) {
+            Bullet b = activeBullets.get(i);
+            b.update(deltaTime);
+            if (!b.active) {
+                activeBullets.remove(i);
+                i--;
+            }
+        }
+
         move();
     }
 
     public void handleKeyPress(int keycode) {
-        if (id == 1){
-            if (keycode == Input.Keys.UP) up = true;
-            if (keycode == Input.Keys.DOWN) down = true;
-            if (keycode == Input.Keys.LEFT) left = true;
+        if (id == 1) {
+            if (keycode == Input.Keys.UP)    up = true;
+            if (keycode == Input.Keys.DOWN)  down = true;
+            if (keycode == Input.Keys.LEFT)  left = true;
             if (keycode == Input.Keys.RIGHT) right = true;
             if (keycode == Input.Keys.I && sprintAvailable) sprinting = true;
-        }
-
-        else if (id == 2){
+        } else if (id == 2) {
             if (keycode == Input.Keys.W) up = true;
             if (keycode == Input.Keys.S) down = true;
             if (keycode == Input.Keys.A) left = true;
@@ -76,15 +126,13 @@ public class Player {
     }
 
     public void handleKeyRelease(int keycode) {
-        if (id == 1){
-            if (keycode == Input.Keys.UP) up = false;
-            if (keycode == Input.Keys.DOWN) down = false;
-            if (keycode == Input.Keys.LEFT) left = false;
+        if (id == 1) {
+            if (keycode == Input.Keys.UP)    up = false;
+            if (keycode == Input.Keys.DOWN)  down = false;
+            if (keycode == Input.Keys.LEFT)  left = false;
             if (keycode == Input.Keys.RIGHT) right = false;
             if (keycode == Input.Keys.I) sprinting = false;
-        }
-
-        else if (id == 2){
+        } else if (id == 2) {
             if (keycode == Input.Keys.W) up = false;
             if (keycode == Input.Keys.S) down = false;
             if (keycode == Input.Keys.A) left = false;
@@ -93,11 +141,51 @@ public class Player {
         }
     }
 
+    // Determines if the player is trying to shoot.
+    // For example, player 1 uses the O key; player 2 uses the Y key.
+    private boolean shouldShoot() {
+        if (id == 1 && Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+            return true;
+        } else if (id == 2 && Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
+            return true;
+        }
+        return false;
+    }
+
+    // Shoot: remove one bullet from the ammo list, set its properties (including direction),
+    // and add it to activeBullets.
+    private void shoot() {
+        // Remove a bullet from the magazine.
+        Bullet bulletToFire = ammo.remove(0);
+        // Position it at the player's location.
+        bulletToFire.x = x;
+        bulletToFire.y = y;
+        // Set its velocity based on the player's last movement direction.
+        bulletToFire.dx = lastDirX;
+        bulletToFire.dy = lastDirY;
+        bulletToFire.active = true;
+        // Add it to the list of active bullets.
+        activeBullets.add(bulletToFire);
+        System.out.println("Player " + id + " fired a bullet. Ammo left: " + ammo.size());
+    }
+
     public void render(SpriteBatch batch) {
+        // Draw the player.
         batch.draw(texture, x, y, 24, 24);
+        // Render all active bullets.
+        for (Bullet b : activeBullets) {
+            b.render(batch);
+        }
     }
 
     public void dispose() {
         texture.dispose();
+        // Dispose all bullet textures from activeBullets and ammo.
+        for (Bullet b : activeBullets) {
+            b.dispose();
+        }
+        for (Bullet b : ammo) {
+            b.dispose();
+        }
     }
 }

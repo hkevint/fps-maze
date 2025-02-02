@@ -11,7 +11,6 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class MyGame extends ApplicationAdapter {
     private SpriteBatch batch;
     private Texture image;
@@ -30,19 +29,17 @@ public class MyGame extends ApplicationAdapter {
         font = new BitmapFont(); // Load the default font
         inMenu = true; // Start in the menu state
 
-        // Create a ScreenViewport to handle screen resizing
         viewport = new ScreenViewport();
 
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
                 if (inMenu) {
-                    // Check for Enter key press to start the game
+                    // Press ENTER to start the game.
                     if (keycode == Input.Keys.ENTER) {
-                        inMenu = false; // Exit the menu
+                        inMenu = false;
                     }
                 } else {
-                    // Handle player input if not in the menu
                     player1.handleKeyPress(keycode);
                     player2.handleKeyPress(keycode);
                 }
@@ -52,7 +49,6 @@ public class MyGame extends ApplicationAdapter {
             @Override
             public boolean keyUp(int keycode) {
                 if (!inMenu) {
-                    // Handle player input if not in the menu
                     player1.handleKeyRelease(keycode);
                     player2.handleKeyRelease(keycode);
                 }
@@ -64,19 +60,19 @@ public class MyGame extends ApplicationAdapter {
     @Override
     public void render() {
         float deltaTime = Gdx.graphics.getDeltaTime();
-
-        // Clear the screen
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Update the viewport and apply it
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
         if (inMenu) {
-            // Render the start menu
-            renderMenu();
+            batch.begin();
+            String text = "Press ENTER to Start";
+            float textWidth = font.getLineHeight() * text.length();
+            float x = (viewport.getWorldWidth() - textWidth) / 2;
+            float y = 50;
+            font.draw(batch, text, x, y);
+            batch.end();
         } else {
-            // Render the main game
             player1.update(deltaTime);
             player2.update(deltaTime);
 
@@ -87,22 +83,8 @@ public class MyGame extends ApplicationAdapter {
         }
     }
 
-    private void renderMenu() {
-        batch.begin();
-
-        // Display "Start" text at the bottom of the screen
-        String text = "Press ENTER to Start";
-        float textWidth = font.getLineHeight() * text.length(); // Approximate text width
-        float x = (viewport.getWorldWidth() - textWidth) / 2; // Center horizontally
-        float y = 50; // Position at the bottom of the screen
-        font.draw(batch, text, x, y);
-
-        batch.end();
-    }
-
     @Override
     public void resize(int width, int height) {
-        // Update the viewport when the screen is resized
         viewport.update(width, height, true);
     }
 
@@ -112,6 +94,6 @@ public class MyGame extends ApplicationAdapter {
         image.dispose();
         player1.dispose();
         player2.dispose();
-        font.dispose(); // Dispose of the font
+        font.dispose();
     }
 }
